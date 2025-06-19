@@ -47,8 +47,3 @@ docstring-min-length = -1
 
 [tool.pylint."messages control"]
 disable = []
-
-[tool.flake8]
-exclude = [
-  ".git"
-]
