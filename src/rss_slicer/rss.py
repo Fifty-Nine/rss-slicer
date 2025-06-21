@@ -41,7 +41,7 @@ def _parse_list(e: Element, name: str, parser: Callable[[Element], Any]):
 
 
 @dataclass
-class FeedCategory:
+class Category:
     """Stores a feed category as defined by the RSS specification."""
     text: str
     domain: Optional[str] = None
@@ -56,16 +56,16 @@ class FeedCategory:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedCategory':
+    def parse(e: Element) -> 'Category':
         """Parse the given 'category' element from an RSS document."""
-        return FeedCategory(
+        return Category(
             e.text or '',
             e.attrib.get('domain')
         )
 
 
 @dataclass
-class FeedImage:
+class Image:
     """Stores a feed image as defined by the RSS specification."""
     url: str
     title: str
@@ -102,9 +102,9 @@ class FeedImage:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedImage':
+    def parse(e: Element) -> 'Image':
         """Parse the given 'image' element from an RSS document."""
-        return FeedImage(
+        return Image(
             _get(e, 'url'),
             _get(e, 'title'),
             _get(e, 'link'),
@@ -115,7 +115,7 @@ class FeedImage:
 
 
 @dataclass
-class FeedCloud:
+class Cloud:
     """
     Stores a cloud field as defined by the RSS specification.
     """
@@ -136,9 +136,9 @@ class FeedCloud:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedCloud':
+    def parse(e: Element) -> 'Cloud':
         """Parse the given 'cloud' element from an RSS document."""
-        return FeedCloud(
+        return Cloud(
             e.attrib['domain'],
             int(e.attrib['port']),
             e.attrib['path'],
@@ -148,7 +148,7 @@ class FeedCloud:
 
 
 @dataclass
-class FeedTextInput:
+class TextInput:
     """
     Stores a textInput field as defined by the RSS specification.
     """
@@ -176,9 +176,9 @@ class FeedTextInput:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedTextInput':
+    def parse(e: Element) -> 'TextInput':
         """Parse the given 'textInput' element from an RSS document."""
-        return FeedTextInput(
+        return TextInput(
             _get(e, 'title'),
             _get(e, 'description'),
             _get(e, 'name'),
@@ -187,7 +187,7 @@ class FeedTextInput:
 
 
 @dataclass
-class FeedSkipHours:
+class SkipHours:
     """
     Stores the contents of a skipHours element as defined by
     the RSS specification.
@@ -205,15 +205,15 @@ class FeedSkipHours:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedSkipHours':
+    def parse(e: Element) -> 'SkipHours':
         """Parse the given 'skipHours' element from an RSS document."""
-        return FeedSkipHours(
+        return SkipHours(
             _parse_list(e, 'hour', lambda h: int(h.text))
         )
 
 
 @dataclass
-class FeedSkipDays:
+class SkipDays:
     """
     Stores the contents of a skipDays element as defined by
     the RSS specification.
@@ -231,15 +231,15 @@ class FeedSkipDays:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedSkipDays':
+    def parse(e: Element) -> 'SkipDays':
         """Parse the given 'skipDays' element from an RSS document."""
-        return FeedSkipDays(
+        return SkipDays(
             _parse_list(e, 'day', lambda d: d.text)
         )
 
 
 @dataclass
-class FeedMetadata:
+class Channel:
     """
     Stores required and optional metadata about an RSS feed as defined
     by the RSS specification.
@@ -253,16 +253,16 @@ class FeedMetadata:
     web_master: Optional[str] = None
     pub_date: Optional[datetime] = None
     last_build_date: Optional[datetime] = None
-    categories: Optional[list[FeedCategory]] = None
+    categories: Optional[list[Category]] = None
     generator: Optional[str] = None
     docs: Optional[str] = None
-    cloud: Optional[FeedCloud] = None
+    cloud: Optional[Cloud] = None
     ttl: Optional[int] = None
-    image: Optional[FeedImage] = None
+    image: Optional[Image] = None
     rating: Optional[str] = None
-    text_input: Optional[FeedTextInput] = None
-    skip_hours: Optional[FeedSkipHours] = None
-    skip_days: Optional[FeedSkipDays] = None
+    text_input: Optional[TextInput] = None
+    skip_hours: Optional[SkipHours] = None
+    skip_days: Optional[SkipDays] = None
 
     def render(self) -> Element:
         """Render this item into an XML element."""
@@ -338,12 +338,12 @@ class FeedMetadata:
         return result
 
     @staticmethod
-    def parse(e: Element) -> 'FeedMetadata':
+    def parse(e: Element) -> 'Channel':
         """
         Parse all RSS-specified metadata
         from the given 'channel' element.
         """
-        return FeedMetadata(
+        return Channel(
             _get(e, 'title'),
             _get(e, 'link'),
             _get(e, 'description'),
@@ -353,14 +353,14 @@ class FeedMetadata:
             _get_opt(e, 'webMaster'),
             _get_opt(e, 'pubDate', parsedate_to_datetime),
             _get_opt(e, 'lastBuildDate', parsedate_to_datetime),
-            _parse_list(e, 'category', FeedCategory.parse),
+            _parse_list(e, 'category', Category.parse),
             _get_opt(e, 'generator'),
             _get_opt(e, 'docs'),
-            _parse_opt(e, 'cloud', FeedCloud.parse),
+            _parse_opt(e, 'cloud', Cloud.parse),
             _get_opt(e, 'ttl', int),
-            _parse_opt(e, 'image', FeedImage.parse),
+            _parse_opt(e, 'image', Image.parse),
             _get_opt(e, 'rating'),
-            _parse_opt(e, 'textInput', FeedTextInput.parse),
-            _parse_opt(e, 'skipHours', FeedSkipHours.parse),
-            _parse_opt(e, 'skipDays', FeedSkipDays.parse)
+            _parse_opt(e, 'textInput', TextInput.parse),
+            _parse_opt(e, 'skipHours', SkipHours.parse),
+            _parse_opt(e, 'skipDays', SkipDays.parse)
         )

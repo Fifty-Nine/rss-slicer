@@ -64,7 +64,7 @@ def apply_mutations(tree: Element, mutations: list[tuple[str, Callback]]):
 @dataclass
 class SlicedFeed:
     """Defines how to produce a sliced feed from a set of input feeds."""
-    meta: rss.FeedMetadata
+    meta: rss.Channel
     slicers: list[tuple[str, Callback]]
     keep_unrecognized: bool = False
 
