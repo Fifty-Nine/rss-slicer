@@ -48,4 +48,5 @@ no-docstring-rgx = "^(_|test_)"
 docstring-min-length = -1
 
 [tool.pylint."messages control"]
-disable = []
+disable = ["too-many-instance-attributes",
+           "too-many-branches"]
