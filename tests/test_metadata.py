@@ -1,13 +1,13 @@
 """Tests for rss slicer metadata types."""
 from datetime import datetime
 import lxml.etree as ET
-from rss_slicer import (FeedCategory,
-                        FeedImage,
-                        FeedCloud,
-                        FeedTextInput,
-                        FeedSkipHours,
-                        FeedSkipDays,
-                        FeedMetadata)
+from rss_slicer.rss import (FeedCategory,
+                            FeedImage,
+                            FeedCloud,
+                            FeedTextInput,
+                            FeedSkipHours,
+                            FeedSkipDays,
+                            FeedMetadata)
 
 
 def test_category_roundtrip():
