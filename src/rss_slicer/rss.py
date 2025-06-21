@@ -7,7 +7,7 @@ from rss_slicer._rss_types import (Category,
                                    SkipHours,
                                    TextInput)
 
-from rss_slicer._serialize import RSSElement
+from rss_slicer._serialize import XMLSerialization
 
 
 __all__ = [
@@ -15,7 +15,7 @@ __all__ = [
     'Channel',
     'Cloud',
     'Image',
-    'RSSElement',
+    'XMLSerialization',
     'SkipDays',
     'SkipHours',
     'TextInput',

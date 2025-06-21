@@ -160,7 +160,7 @@ def _is_defaulted(field: Field, value: Any):
 
 
 def _render_renderable(e: Element, value: Any):
-    e.append(RSSElement[type(value)].render(value))
+    e.append(XMLSerialization[type(value)].render(value))
 
 
 def _render_embedded_text_element(e: Element, value: Any):
@@ -197,7 +197,7 @@ def _render_element_list(e: Element, field: Field, values: list[Any]):
             child.text = _render_primitive(value)
 
 
-class RSSElement:
+class XMLSerialization:
     """Serialization helper for RSS elements.
     E.g.:
     ```
@@ -227,7 +227,7 @@ class RSSElement:
 
 
 def _render_rss_element(elem, t: Type):
-    name = RSSElement[t].tag_name()
+    name = XMLSerialization[t].tag_name()
     e = Element(name)
     has_text = False
 

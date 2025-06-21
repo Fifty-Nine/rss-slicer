@@ -9,7 +9,7 @@ from rss_slicer._serialize import (_FieldKind,
                                    EmbeddedText,
                                    Renderable,
                                    TextElement,
-                                   RSSElement,
+                                   XMLSerialization,
                                    _get_field_kind,
                                    _is_defaulted,
                                    _render_primitive,
@@ -138,7 +138,7 @@ def test_anonymous():
     class TestAnon:
         pass
 
-    assert RSSElement[TestAnon].tag_name() == 'testAnon'
+    assert XMLSerialization[TestAnon].tag_name() == 'testAnon'
 
 
 def test_named():
@@ -149,7 +149,7 @@ def test_named():
         def tag_name():
             return 'unconventional name'
 
-    assert RSSElement[TestNamed].tag_name() == 'unconventional name'
+    assert XMLSerialization[TestNamed].tag_name() == 'unconventional name'
 
 
 def test_no_render():
@@ -157,8 +157,10 @@ def test_no_render():
     class TestNoRender:
         pass
 
-    assert (etree.tostring(RSSElement[TestNoRender].render(TestNoRender()))
-            == b'<testNoRender/>')
+    assert (
+        etree.tostring(XMLSerialization[TestNoRender].render(TestNoRender()))
+        == b'<testNoRender/>'
+    )
 
 
 def test_custom_render():
@@ -168,5 +170,5 @@ def test_custom_render():
         def render(self):
             return 'surprisingly, not an xml element'
 
-    assert (RSSElement[TestCustomRender].render(TestCustomRender())
+    assert (XMLSerialization[TestCustomRender].render(TestCustomRender())
             == 'surprisingly, not an xml element')
