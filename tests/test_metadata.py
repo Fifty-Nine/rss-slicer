@@ -7,12 +7,13 @@ from rss_slicer.rss import (Category,
                             TextInput,
                             SkipHours,
                             SkipDays,
-                            Channel)
+                            Channel,
+                            RSSElement)
 
 
 def test_category_roundtrip():
     cat = Category('text', 'some.domain')
-    assert cat == Category.parse(cat.render())
+    assert cat == Category.parse(RSSElement[Category].render(cat))
 
 
 def test_category_parse():
@@ -24,41 +25,48 @@ def test_category_parse():
 
 
 def test_category_render():
-    assert (ET.tostring(Category('e', domain='hereitis').render())
-            == b'<category domain="hereitis">e</category>')
+    assert (
+        ET.tostring(
+            RSSElement[Category].render(
+                Category('e', domain='hereitis')
+            )
+        )
+        == b'<category domain="hereitis">e</category>')
 
 
 def test_feedimage_roundtrip():
     image_req = Image('image', 'title', 'link')
-    assert image_req == Image.parse(image_req.render())
+    assert image_req == Image.parse(RSSElement[Image].render(image_req))
 
     image_opt = Image('im', 'ti', 'li', 1, 2, 'desc')
-    assert image_opt == Image.parse(image_opt.render())
+    assert image_opt == Image.parse(RSSElement[Image].render(image_opt))
 
 
 def test_feedcloud_roundtrip():
     cloud = Cloud("domain", 80, "/", "doStuff", "xml-rpc")
-    assert cloud == Cloud.parse(cloud.render())
+    assert cloud == Cloud.parse(RSSElement[Cloud].render(cloud))
 
 
 def test_textinput_roundtrip():
     text_input = TextInput("title", "desc", "name", "link")
-    assert text_input == TextInput.parse(text_input.render())
+    assert (text_input
+            == TextInput.parse(RSSElement[TextInput].render(text_input)))
 
 
 def test_skiphours_roundtrip():
     skip_hours = SkipHours([1, 2, 3])
-    assert skip_hours == SkipHours.parse(skip_hours.render())
+    assert (skip_hours
+            == SkipHours.parse(RSSElement[SkipHours].render(skip_hours)))
 
 
 def test_skipdays_roundtrip():
     skip_days = SkipDays(["Monday", "Friday", "Sunday"])
-    assert skip_days == SkipDays.parse(skip_days.render())
+    assert skip_days == SkipDays.parse(RSSElement[SkipDays].render(skip_days))
 
 
 def test_metadata_roundtrip():
     meta_req = Channel('title', 'link', 'desc')
-    assert meta_req == Channel.parse(meta_req.render())
+    assert meta_req == Channel.parse(RSSElement[Channel].render(meta_req))
 
     meta_opt = Channel(
         title='title',
@@ -86,4 +94,4 @@ def test_metadata_roundtrip():
         skip_hours=SkipHours(list(range(0, 23))),
         skip_days=SkipDays(['Today', 'Tomorrow'])
     )
-    assert meta_opt == Channel.parse(meta_opt.render())
+    assert meta_opt == Channel.parse(RSSElement[Channel].render(meta_opt))

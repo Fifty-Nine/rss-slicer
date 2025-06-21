@@ -73,4 +73,4 @@ def slice_feeds(
         input_feeds: list[Element],
         output_feed: SlicedFeed) -> list[Element]:
     """Slice a set of RSS feeds according to the specified output feeds."""
-    _ = input_feeds, output_feed
+    _ = input_feeds, output_feed  # pragma: no cover

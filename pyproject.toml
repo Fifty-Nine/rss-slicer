@@ -19,7 +19,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "requests (>=2.32.4,<3.0.0)",
-    "lxml (>=5.4.0,<6.0.0)"
+    "lxml (>=5.4.0,<6.0.0)",
+    "camel-converter (>=4.0.1,<5.0.0)",
 ]
 
 [tool.poetry]
@@ -42,11 +43,15 @@ build-backend = "poetry.core.masonry.api"
 [tool.pylint.main]
 suggestion-mode = true
 extension-pkg-allow-list = "lxml"
-no-docstring-rgx = "^(_|test_)"
+no-docstring-rgx = "^(_|test_|Test)"
 
 [tool.pylint.basic]
 docstring-min-length = -1
 
 [tool.pylint."messages control"]
 disable = ["too-many-instance-attributes",
-           "too-many-branches"]
+           "too-many-branches",
+           "too-few-public-methods"]
+
+[tool.pytest.ini_options]
+addopts = "--cov-fail-under=100 --cov=. --cov-branch"
