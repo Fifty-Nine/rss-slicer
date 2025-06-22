@@ -7,13 +7,19 @@ from rss_slicer.rss import (Category,
                             TextInput,
                             SkipHours,
                             SkipDays,
-                            Channel,
-                            XMLSerialization)
+                            Channel)
+from rss_slicer.rss.xml import (CategoryXML,
+                                ImageXML,
+                                CloudXML,
+                                TextInputXML,
+                                SkipHoursXML,
+                                SkipDaysXML,
+                                ChannelXML)
 
 
 def test_category_roundtrip():
     cat = Category('text', 'some.domain')
-    assert cat == Category.parse(XMLSerialization[Category].render(cat))
+    assert cat == Category.parse(CategoryXML.render(cat))
 
 
 def test_category_parse():
@@ -27,7 +33,7 @@ def test_category_parse():
 def test_category_render():
     assert (
         ET.tostring(
-            XMLSerialization[Category].render(
+            CategoryXML.render(
                 Category('e', domain='hereitis')
             )
         )
@@ -36,39 +42,39 @@ def test_category_render():
 
 def test_feedimage_roundtrip():
     image_req = Image('image', 'title', 'link')
-    assert image_req == Image.parse(XMLSerialization[Image].render(image_req))
+    assert image_req == Image.parse(ImageXML.render(image_req))
 
     image_opt = Image('im', 'ti', 'li', 1, 2, 'desc')
-    assert image_opt == Image.parse(XMLSerialization[Image].render(image_opt))
+    assert image_opt == Image.parse(ImageXML.render(image_opt))
 
 
 def test_feedcloud_roundtrip():
     cloud = Cloud("domain", 80, "/", "doStuff", "xml-rpc")
-    assert cloud == Cloud.parse(XMLSerialization[Cloud].render(cloud))
+    assert cloud == Cloud.parse(CloudXML.render(cloud))
 
 
 def test_textinput_roundtrip():
     text_input = TextInput("title", "desc", "name", "link")
     assert (text_input
-            == TextInput.parse(XMLSerialization[TextInput].render(text_input)))
+            == TextInput.parse(TextInputXML.render(text_input)))
 
 
 def test_skiphours_roundtrip():
     skip_hours = SkipHours([1, 2, 3])
     assert (skip_hours
-            == SkipHours.parse(XMLSerialization[SkipHours].render(skip_hours)))
+            == SkipHours.parse(SkipHoursXML.render(skip_hours)))
 
 
 def test_skipdays_roundtrip():
     skip_days = SkipDays(["Monday", "Friday", "Sunday"])
     assert (skip_days
-            == SkipDays.parse(XMLSerialization[SkipDays].render(skip_days)))
+            == SkipDays.parse(SkipDaysXML.render(skip_days)))
 
 
 def test_metadata_roundtrip():
     meta_req = Channel('title', 'link', 'desc')
     assert (meta_req
-            == Channel.parse(XMLSerialization[Channel].render(meta_req)))
+            == Channel.parse(ChannelXML.render(meta_req)))
 
     meta_opt = Channel(
         title='title',
@@ -97,4 +103,4 @@ def test_metadata_roundtrip():
         skip_days=SkipDays(['Today', 'Tomorrow'])
     )
     assert (meta_opt
-            == Channel.parse(XMLSerialization[Channel].render(meta_opt)))
+            == Channel.parse(ChannelXML.render(meta_opt)))
