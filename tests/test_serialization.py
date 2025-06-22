@@ -4,18 +4,18 @@ from datetime import datetime
 from typing import (Optional)
 from lxml import etree
 from pytest import raises
-from rss_slicer._serialize import (_FieldKind,
-                                   Attribute,
-                                   EmbeddedText,
-                                   Renderable,
-                                   TextElement,
-                                   XMLSerialization,
-                                   _get_field_kind,
-                                   _is_defaulted,
-                                   _render_primitive,
-                                   _render_rss_element,
-                                   _singularize,
-                                   fields)
+from rss_slicer.rss._serialize import (_FieldKind,
+                                       Attribute,
+                                       EmbeddedText,
+                                       Renderable,
+                                       TextElement,
+                                       XMLSerialization,
+                                       _get_field_kind,
+                                       _is_defaulted,
+                                       _render_primitive,
+                                       _render_rss_element,
+                                       _singularize,
+                                       fields)
 
 
 def test_primitives():

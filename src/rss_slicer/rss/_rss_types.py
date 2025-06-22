@@ -5,12 +5,12 @@ from email.utils import parsedate_to_datetime
 from typing import Optional
 from lxml.etree import Element
 
-from rss_slicer._serialize import (Attribute,
-                                   EmbeddedText,
-                                   _get,
-                                   _get_opt,
-                                   _parse_list,
-                                   _parse_opt)
+from rss_slicer.rss._serialize import (Attribute,
+                                       EmbeddedText,
+                                       _get,
+                                       _get_opt,
+                                       _parse_list,
+                                       _parse_opt)
 
 
 @dataclass
