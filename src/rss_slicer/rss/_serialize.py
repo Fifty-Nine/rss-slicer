@@ -6,8 +6,7 @@ from enum import Enum
 from functools import singledispatch
 import types
 import typing
-from typing import (Annotated,
-                    Any,
+from typing import (Any,
                     Callable,
                     Generic,
                     Optional,
@@ -15,6 +14,29 @@ from typing import (Annotated,
                     TypeVar)
 from camel_converter import to_camel
 from lxml.etree import Element, SubElement
+
+
+T = TypeVar('T')
+
+
+class Attribute(Generic[T]):
+    """Type hint used to indicate that a field should be
+    serialized as an XML attribute."""
+
+
+class TextElement(Generic[T]):
+    """Type hint used to indicate that a field should be
+    serialized as embedded text within a named element."""
+
+
+class EmbeddedText(Generic[T]):
+    """Type hint used to indicate that a field should be
+    serialized as embedded text within the current element."""
+
+
+class NestedObject(Generic[T]):
+    """Type hint used to indicate that a field should be
+    serialized as a complex object within a named element."""
 
 
 def _singularize(noun: str) -> str:
@@ -71,7 +93,11 @@ class _FieldKind(Enum):
 
 
 def _get_conversion_for_type(t: Type):
-    if typing.get_origin(t) in (Annotated, list):
+    if typing.get_origin(t) in (list,
+                                Attribute,
+                                TextElement,
+                                EmbeddedText,
+                                NestedObject):
         return _get_conversion_for_type(typing.get_args(t)[0])
 
     if typing.get_origin(t) in (typing.Union, types.UnionType):
@@ -140,20 +166,29 @@ def _get_list_elem_type(t: Type):
             next(nt for nt in typing.get_args(t) if nt is not type(None))
         )
 
-    return None
-
-
-def _is_list(t: Type):
-    return _get_list_elem_type(t) is not None
+    raise ValueError(f'{t} is not a list type.')  # pragma: no cover
 
 
 def _get_annotated_kind(t: Type) -> Optional[_FieldKind]:
+    # pylint: disable=too-many-return-statements
     if _is_optional(t):
         args = [nt for nt in typing.get_args(t) if nt is not type(None)]
         return _get_annotated_kind(args[0]) if len(args) == 1 else None
 
-    if typing.get_origin(t) is Annotated:
-        return typing.get_args(t)[1]
+    if typing.get_origin(t) is Attribute:
+        return _FieldKind.ATTRIBUTE
+
+    if typing.get_origin(t) is TextElement:
+        return _FieldKind.TEXT_ELEMENT
+
+    if typing.get_origin(t) is list:
+        return _FieldKind.ELEMENT_LIST
+
+    if typing.get_origin(t) is NestedObject:
+        return _FieldKind.NESTED_OBJECT
+
+    if typing.get_origin(t) is EmbeddedText:
+        return _FieldKind.EMBEDDED_TEXT_ELEMENT
 
     return None
 
@@ -166,25 +201,7 @@ def _get_field_kind(t: Type) -> _FieldKind:
     if _is_nested_object(t):
         return _FieldKind.NESTED_OBJECT
 
-    if _is_list(t):
-        return _FieldKind.ELEMENT_LIST
-
     return _FieldKind.TEXT_ELEMENT
-
-
-class _MakeAnnotated:
-    def __class_getitem__(cls, kind):
-        class _Builder:
-            def __class_getitem__(cls, base_type):
-                return Annotated[base_type, kind]
-
-        return _Builder
-
-
-Attribute = _MakeAnnotated[_FieldKind.ATTRIBUTE]
-TextElement = _MakeAnnotated[_FieldKind.TEXT_ELEMENT]
-EmbeddedText = _MakeAnnotated[_FieldKind.EMBEDDED_TEXT_ELEMENT]
-NestedObject = _MakeAnnotated[_FieldKind.NESTED_OBJECT]
 
 
 @singledispatch
