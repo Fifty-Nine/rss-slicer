@@ -293,7 +293,7 @@ def test_non_dataclass_obj():
     assert etree.tostring(rendered) == b'<someCustomXML/>'
 
 
-@mark.xfail(reason="not implemented")
+@mark.xfail(raises=NotImplementedError)
 def test_nested_non_dataclass_obj():
     @dataclass
     class TestNested:
