@@ -29,9 +29,9 @@ def test_primitives():
         _render_primitive(None)
 
     with raises(NotImplementedError):
-        class TestRandoType:
+        class _Uut:
             pass
-        _render_primitive(TestRandoType)
+        _render_primitive(_Uut)
 
 
 def test_singularize():
@@ -42,22 +42,22 @@ def test_singularize():
 
 def test_is_defaulted():
     @dataclass
-    class Test:
+    class _Uut:
         a: int
         b: Optional[str]
         c: int = 0
         d: Optional[int] = None
 
-    t = Test(0, 1, 2, 3)
+    t = _Uut(0, 1, 2, 3)
 
     assert ([_is_defaulted(f, getattr(t, f.name)) for f in fields(t)]
             == [False, False, False, False])
 
-    t = Test(-1, -2)
+    t = _Uut(-1, -2)
     assert ([_is_defaulted(f, getattr(t, f.name)) for f in fields(t)]
             == [False, False, True, True])
 
-    t = Test(-1, -2, 0, None)
+    t = _Uut(-1, -2, 0, None)
     assert ([_is_defaulted(f, getattr(t, f.name)) for f in fields(t)]
             == [False, False, True, True])
 
@@ -100,39 +100,39 @@ def test_get_field_kind():
 
 def test_render_multiple_text():
     @dataclass
-    class TestBadMultipleText:
+    class _Uut:
         a: EmbeddedText[int]
         b: EmbeddedText[str]
 
     with raises(RuntimeError):
-        _render_rss_element(TestBadMultipleText(0, "a"), TestBadMultipleText)
+        _render_rss_element(_Uut(0, "a"), _Uut)
 
 
 def test_render_embedded_text_in_list():
     @dataclass
-    class TestEmbeddedTextInList:
+    class _Uut:
         a: list[EmbeddedText[int]]
 
     with raises(TypeError):
-        _render_rss_element(TestEmbeddedTextInList([]), TestEmbeddedTextInList)
+        _render_rss_element(_Uut([]), _Uut)
 
 
 def test_render_attribute_in_list():
     @dataclass
-    class TestAttributeInList:
+    class _Uut:
         a: list[Attribute[int]]
 
     with raises(TypeError):
-        _render_rss_element(TestAttributeInList([]), TestAttributeInList)
+        _render_rss_element(_Uut([]), _Uut)
 
 
 def test_render_nested_list():
     @dataclass
-    class TestNestedList:
+    class _Uut:
         a: list[list[int]]
 
     with raises(NotImplementedError):
-        _render_rss_element(TestNestedList([[]]), TestNestedList)
+        _render_rss_element(_Uut([[]]), _Uut)
 
 
 def test_anonymous():
@@ -145,44 +145,44 @@ def test_anonymous():
 
 def test_named():
     @dataclass
-    class TestNamed:
+    class _Uut:
         # pylint: disable=missing-function-docstring
         @staticmethod
         def tag_name():
             return 'unconventional name'
 
-    assert XMLSerialization[TestNamed].tag_name() == 'unconventional name'
+    assert XMLSerialization[_Uut].tag_name() == 'unconventional name'
 
 
 def test_no_render():
     @dataclass
-    class TestNoRender:
+    class _Uut:
         pass
 
     assert (
-        etree.tostring(XMLSerialization[TestNoRender].render(TestNoRender()))
-        == b'<testNoRender/>'
+        etree.tostring(XMLSerialization[_Uut].render(_Uut()))
+        == b'<_Uut/>'
     )
 
 
 def test_custom_render():
     @dataclass
-    class TestCustomRender:
+    class _Uut:
         # pylint: disable=missing-function-docstring
         def render(self):
             return 'surprisingly, not an xml element'
 
-    assert (XMLSerialization[TestCustomRender].render(TestCustomRender())
+    assert (XMLSerialization[_Uut].render(_Uut())
             == 'surprisingly, not an xml element')
 
 
 def test_parse_optional_fields_parse():
     @dataclass
-    class TestOptFields:
+    class _Uut:
         a: Optional[EmbeddedText[str]] = None
         b: Optional[TextElement[str]] = None
 
-    obj = XMLSerialization[TestOptFields].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML("<testFieldOpt><b/></testFieldOpt>")
     )
 
@@ -192,15 +192,15 @@ def test_parse_optional_fields_parse():
 
 def test_parse_renderable():
     @dataclass
-    class TestTrivial:
+    class _Uut:
         a: str
 
     @dataclass
-    class TestRenderable:
-        some_field: TestTrivial
-        opt: Optional[TestTrivial] = None
+    class _Uut:
+        some_field: _Uut
+        opt: Optional[_Uut] = None
 
-    obj = XMLSerialization[TestRenderable].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML(
             '<testRenderable>'
             '  <someField><a>foo</a></someField>'
@@ -214,10 +214,10 @@ def test_parse_renderable():
 
 def test_parse_empty_elem_list():
     @dataclass
-    class TestEmptyList:
+    class _Uut:
         a: Optional[list[int]] = None
 
-    obj = XMLSerialization[TestEmptyList].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML("<testEmptyList/>")
     )
 
@@ -226,21 +226,21 @@ def test_parse_empty_elem_list():
 
 def test_parse_bad_union():
     @dataclass
-    class TestUnionType:
+    class _Uut:
         a: int | str
 
     with raises(NotImplementedError):
-        XMLSerialization[TestUnionType].parse(
+        XMLSerialization[_Uut].parse(
             etree.XML('<testUnionType><a>0</a></testUnionType>')
         )
 
 
 def test_parse_datetime_field():
     @dataclass
-    class TestDatetime:
+    class _Uut:
         a: datetime
 
-    obj = XMLSerialization[TestDatetime].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML(
             '<testDatetime><a>Sat, 07 Sep 2002 00:00:01 GMT</a></testDatetime>'
         )
@@ -251,14 +251,14 @@ def test_parse_datetime_field():
 
 def test_parse_opt_dataclass():
     @dataclass
-    class TestSubObj:
+    class _ChildUut:
         a: EmbeddedText[int]
 
     @dataclass
-    class TestOptDataclass:
-        m: Optional[TestSubObj]
+    class _ParentUut:
+        m: Optional[_ChildUut]
 
-    obj = XMLSerialization[TestOptDataclass].parse(
+    obj = XMLSerialization[_ParentUut].parse(
         etree.XML(
             '<testOptDataclass>'
             '  <m>33</m>'
@@ -296,31 +296,31 @@ def test_non_dataclass_obj():
 @mark.xfail(raises=NotImplementedError)
 def test_nested_non_dataclass_obj():
     @dataclass
-    class TestNested:
+    class _Uut:
         a: NestedObject[_TestNotADataclass]
 
-    _ = XMLSerialization[TestNested].parse(
+    _ = XMLSerialization[_Uut].parse(
         etree.XML('<testNested><a/></testNested>')
     )
 
 
 def test_opt_field_no_default():
     @dataclass
-    class TestOptFieldNoDefault:
+    class _Uut:
         a: Optional[int]
 
     with raises(TypeError):
-        _ = XMLSerialization[TestOptFieldNoDefault].parse(
+        _ = XMLSerialization[_Uut].parse(
             etree.XML('<testOptFieldNoDefault/>')
         )
 
 
 def test_defaulted_non_opt_field():
     @dataclass
-    class TestDefaultedNonOptField:
+    class _Uut:
         a: int = 59
 
-    obj = XMLSerialization[TestDefaultedNonOptField].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML('<testDefaultedNonOptField/>')
     )
 
@@ -329,10 +329,10 @@ def test_defaulted_non_opt_field():
 
 def test_defaulted_optional():
     @dataclass
-    class TestDefaultedOptional:
+    class _Uut:
         a: Optional[int] = 22
 
-    obj = XMLSerialization[TestDefaultedOptional].parse(
+    obj = XMLSerialization[_Uut].parse(
         etree.XML('<testDefaultedOptional/>')
     )
 
