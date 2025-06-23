@@ -7,6 +7,7 @@ from lxml.etree import Element
 
 from rss_slicer.rss._serialize import (Attribute,
                                        EmbeddedText,
+                                       XMLSerialization,
                                        _get,
                                        _get_opt,
                                        _parse_list,
@@ -19,14 +20,6 @@ class Category:
     text: EmbeddedText[str]
     domain: Attribute[Optional[str]] = None
 
-    @staticmethod
-    def parse(e: Element) -> 'Category':
-        """Parse the given 'category' element from an RSS document."""
-        return Category(
-            e.text or '',
-            e.attrib.get('domain')
-        )
-
 
 @dataclass
 class Image:
@@ -37,18 +30,6 @@ class Image:
     width: Optional[int] = None
     height: Optional[int] = None
     description: Optional[str] = None
-
-    @staticmethod
-    def parse(e: Element) -> 'Image':
-        """Parse the given 'image' element from an RSS document."""
-        return Image(
-            _get(e, 'url'),
-            _get(e, 'title'),
-            _get(e, 'link'),
-            _get_opt(e, 'width', int),
-            _get_opt(e, 'height', int),
-            _get_opt(e, 'description')
-        )
 
 
 @dataclass
@@ -62,17 +43,6 @@ class Cloud:
     register_procedure: Attribute[str]
     protocol: Attribute[str]
 
-    @staticmethod
-    def parse(e: Element) -> 'Cloud':
-        """Parse the given 'cloud' element from an RSS document."""
-        return Cloud(
-            e.attrib['domain'],
-            int(e.attrib['port']),
-            e.attrib['path'],
-            e.attrib['registerProcedure'],
-            e.attrib['protocol']
-        )
-
 
 @dataclass
 class TextInput:
@@ -84,16 +54,6 @@ class TextInput:
     name: str
     link: str
 
-    @staticmethod
-    def parse(e: Element) -> 'TextInput':
-        """Parse the given 'textInput' element from an RSS document."""
-        return TextInput(
-            _get(e, 'title'),
-            _get(e, 'description'),
-            _get(e, 'name'),
-            _get(e, 'link')
-        )
-
 
 @dataclass
 class SkipHours:
@@ -103,13 +63,6 @@ class SkipHours:
     """
     hours: list[int]
 
-    @staticmethod
-    def parse(e: Element) -> 'SkipHours':
-        """Parse the given 'skipHours' element from an RSS document."""
-        return SkipHours(
-            _parse_list(e, 'hour', lambda h: int(h.text))
-        )
-
 
 @dataclass
 class SkipDays:
@@ -118,13 +71,6 @@ class SkipDays:
     the RSS specification.
     """
     days: list[str]
-
-    @staticmethod
-    def parse(e: Element) -> 'SkipDays':
-        """Parse the given 'skipDays' element from an RSS document."""
-        return SkipDays(
-            _parse_list(e, 'day', lambda d: d.text)
-        )
 
 
 @dataclass
@@ -169,14 +115,14 @@ class Channel:
             _get_opt(e, 'webMaster'),
             _get_opt(e, 'pubDate', parsedate_to_datetime),
             _get_opt(e, 'lastBuildDate', parsedate_to_datetime),
-            _parse_list(e, 'category', Category.parse),
+            _parse_list(e, 'category', XMLSerialization[Category].parse),
             _get_opt(e, 'generator'),
             _get_opt(e, 'docs'),
-            _parse_opt(e, 'cloud', Cloud.parse),
+            _parse_opt(e, 'cloud', XMLSerialization[Cloud].parse),
             _get_opt(e, 'ttl', int),
-            _parse_opt(e, 'image', Image.parse),
+            _parse_opt(e, 'image', XMLSerialization[Image].parse),
             _get_opt(e, 'rating'),
-            _parse_opt(e, 'textInput', TextInput.parse),
-            _parse_opt(e, 'skipHours', SkipHours.parse),
-            _parse_opt(e, 'skipDays', SkipDays.parse)
+            _parse_opt(e, 'textInput', XMLSerialization[TextInput].parse),
+            _parse_opt(e, 'skipHours', XMLSerialization[SkipHours].parse),
+            _parse_opt(e, 'skipDays', XMLSerialization[SkipDays].parse)
         )

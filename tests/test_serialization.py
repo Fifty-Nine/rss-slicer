@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (Optional)
+from zoneinfo import ZoneInfo
 from lxml import etree
 from pytest import raises
 from rss_slicer.rss._serialize import (_FieldKind,
@@ -172,3 +173,96 @@ def test_custom_render():
 
     assert (XMLSerialization[TestCustomRender].render(TestCustomRender())
             == 'surprisingly, not an xml element')
+
+
+def test_parse_optional_fields_parse():
+    @dataclass
+    class TestOptFields:
+        a: Optional[EmbeddedText[str]] = None
+        b: Optional[TextElement[str]] = None
+
+    obj = XMLSerialization[TestOptFields].parse(
+        etree.XML("<testFieldOpt><b/></testFieldOpt>")
+    )
+
+    assert obj.a is None
+    assert obj.b is None
+
+
+def test_parse_renderable():
+    @dataclass
+    class TestTrivial:
+        a: str
+
+    @dataclass
+    class TestRenderable:
+        some_field: TestTrivial
+        opt: Optional[TestTrivial] = None
+
+    obj = XMLSerialization[TestRenderable].parse(
+        etree.XML(
+            '<testRenderable>'
+            '  <someField><a>foo</a></someField>'
+            '</testRenderable>'
+        )
+    )
+
+    assert obj.some_field.a == "foo"
+    assert obj.opt is None
+
+
+def test_parse_empty_elem_list():
+    @dataclass
+    class TestEmptyList:
+        a: Optional[list[int]] = None
+
+    obj = XMLSerialization[TestEmptyList].parse(
+        etree.XML("<testEmptyList/>")
+    )
+
+    assert obj.a is None
+
+
+def test_parse_bad_union():
+    @dataclass
+    class TestUnionType:
+        a: int | str
+
+    with raises(NotImplementedError):
+        XMLSerialization[TestUnionType].parse(
+            etree.XML('<testUnionType><a>0</a></testUnionType>')
+        )
+
+
+def test_parse_datetime_field():
+    @dataclass
+    class TestDatetime:
+        a: datetime
+
+    obj = XMLSerialization[TestDatetime].parse(
+        etree.XML(
+            '<testDatetime><a>Sat, 07 Sep 2002 00:00:01 GMT</a></testDatetime>'
+        )
+    )
+
+    assert obj.a == datetime(2002, 9, 7, 0, 0, 1, 0, ZoneInfo('Etc/GMT'))
+
+
+def test_parse_opt_dataclass():
+    @dataclass
+    class TestSubObj:
+        a: EmbeddedText[int]
+
+    @dataclass
+    class TestOptDataclass:
+        m: Optional[TestSubObj]
+
+    obj = XMLSerialization[TestOptDataclass].parse(
+        etree.XML(
+            '<testOptDataclass>'
+            '  <m>33</m>'
+            '</testOptDataclass>'
+        )
+    )
+
+    assert obj.m.a == 33

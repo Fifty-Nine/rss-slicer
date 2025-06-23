@@ -1,7 +1,7 @@
 """Types and methods to reduce serialization boilerplate."""
 from dataclasses import (Field, MISSING, fields, is_dataclass)
 from datetime import datetime
-from email.utils import format_datetime
+from email.utils import format_datetime, parsedate_to_datetime
 from enum import Enum
 from functools import singledispatch
 import types
@@ -9,8 +9,10 @@ import typing
 from typing import (Annotated,
                     Any,
                     Callable,
+                    Generic,
                     Optional,
-                    Type)
+                    Type,
+                    TypeVar)
 from camel_converter import to_camel
 from lxml.etree import Element, SubElement
 
@@ -68,19 +70,48 @@ class _FieldKind(Enum):
     ELEMENT_LIST = 4
 
 
+def _get_conversion_for_type(t: Type):
+    if typing.get_origin(t) in (Annotated, list):
+        return _get_conversion_for_type(typing.get_args(t)[0])
+
+    if typing.get_origin(t) in (typing.Union, types.UnionType):
+        args = typing.get_args(t)
+        if type(None) not in args:
+            raise NotImplementedError('union types not supported')
+
+        return _get_conversion_for_type(next(a for a in args if a is not None))
+
+    if is_dataclass(t):
+        return XMLSerialization[t].parse
+
+    if t is datetime:
+        return parsedate_to_datetime
+
+    return t
+
+
 def _is_optional(t: Type):
-    return (typing.get_origin(type) not in (typing.Union, types.UnionType)
+    return (typing.get_origin(t) in (typing.Union, types.UnionType)
             and type(None) in typing.get_args(t))
+
+
+def _get_renderer(t: Type):
+    if is_dataclass(t):
+        return XMLSerialization[t]
+
+    if _is_optional(t):
+        return _get_renderer(next(nt for nt in typing.get_args(t)
+                                  if nt is not type(None)))
+
+    raise NotImplementedError(
+        "No available renderer for type {t}"
+    )  # pragma: no cover
 
 
 def _is_renderable(t: Type):
     return (is_dataclass(t) or
             _is_optional(t) and any(_is_renderable(nt)
                                     for nt in typing.get_args(t)))
-
-
-def _is_list(t: Type):
-    return _get_list_elem_type(t) is not None
 
 
 def _get_list_elem_type(t: Type):
@@ -93,6 +124,10 @@ def _get_list_elem_type(t: Type):
         )
 
     return None
+
+
+def _is_list(t: Type):
+    return _get_list_elem_type(t) is not None
 
 
 def _get_annotated_kind(t: Type) -> Optional[_FieldKind]:
@@ -197,7 +232,80 @@ def _render_element_list(e: Element, field: Field, values: list[Any]):
             child.text = _render_primitive(value)
 
 
-class XMLSerialization:
+def _get_element_text(e: Element):
+    text = e.text.strip() if e.text is not None else None
+    return text if text is not None and len(text) > 0 else None
+
+
+def _parse_field(field: Field, e: Element):
+    # pylint: disable=too-many-return-statements
+    conv = _get_conversion_for_type(field.type)
+    match _get_field_kind(field.type):
+        case _FieldKind.EMBEDDED_TEXT_ELEMENT:
+            text = _get_element_text(e)
+
+            if text is None and _is_optional(field.type):
+                return None
+
+            if text is None:
+                text = ''
+
+            return conv(text)
+
+        case _FieldKind.ATTRIBUTE:
+            text = e.attrib.get(to_camel(field.name))
+            return conv(text) if text is not None else None
+
+        case _FieldKind.TEXT_ELEMENT:
+            child = e.find(f'./{to_camel(field.name)}')
+            if child is None:
+                return None
+
+            text = _get_element_text(child)
+            if text is None and _is_optional(field.type):
+                return None
+
+            if text is None:
+                text = ''
+
+            return conv(text) if text is not None else None
+
+        case _FieldKind.ELEMENT_LIST:
+            children = e.findall(f'./{_singularize(to_camel(field.name))}')
+
+            if len(children) == 0:
+                return None
+
+            return [conv(_get_element_text(c))
+                    for c in children]
+
+        case _FieldKind.RENDERABLE:
+            e = e.find(f'./{to_camel(field.name)}')
+            if e is None:
+                return None
+
+            return _get_renderer(field.type).parse(e)
+
+        case _:  # pragma: no cover
+            raise RuntimeError('unexpected field kind')
+
+
+def _parse_rss_element(rss_type, e: Element):
+    init_dict = {}
+
+    for field in fields(rss_type):
+        v = _parse_field(field, e)
+        if v is not None:
+            init_dict[field.name] = v
+
+    return rss_type(**init_dict)
+
+
+# pylint: disable=invalid-name
+XMLSerType = TypeVar('XMLSerType')
+
+
+class XMLSerialization(Generic[XMLSerType]):
     """Serialization helper for RSS elements.
     E.g.:
     ```
@@ -206,27 +314,54 @@ class XMLSerialization:
 
     `MyRSSType` must be a `dataclass`.
     """
-    def __class_getitem__(cls, rss_type):
+    # These static methods are required just to make type hinting
+    # resolve the result types of these methods.
+    @staticmethod
+    def parse(elem: Element) -> XMLSerType:  # pragma: no cover
+        """Stub for parsing."""
+        raise NotImplementedError()
+
+    @staticmethod
+    def render(elem: XMLSerType) -> Element:  # pragma: no cover
+        """Stub for rendering."""
+        raise NotImplementedError()
+
+    @staticmethod
+    def tag_name() -> str:  # pragma: no cover
+        """Stub for getting the name of an element."""
+        raise NotImplementedError()
+
+    @classmethod
+    def __class_getitem__(cls,
+                          item: XMLSerType) -> 'XMLSerialization[XMLSerType]':
         class _RSSType:
             @staticmethod
-            def render(elem):
+            def render(elem: XMLSerType) -> Element:
                 """Render the given element according to the RSS spec."""
                 if hasattr(elem, 'render'):
                     return elem.render()
 
-                return _render_rss_element(elem, rss_type)
+                return _render_rss_element(elem, item)
 
             @staticmethod
-            def tag_name():
+            def parse(elem: Element) -> XMLSerType:
+                """Parse the given XML element into the RSS type."""
+                if hasattr(item, 'parse'):
+                    return item.parse(elem)
+
+                return _parse_rss_element(item, elem)
+
+            @staticmethod
+            def tag_name() -> str:
                 """Get the tag name used to serialize this element."""
-                if hasattr(rss_type, 'tag_name'):
-                    return rss_type.tag_name()
-                return rss_type.__name__[:1].lower() + rss_type.__name__[1:]
+                if hasattr(item, 'tag_name'):
+                    return item.tag_name()
+                return item.__name__[:1].lower() + item.__name__[1:]
 
         return _RSSType
 
 
-def _render_rss_element(elem, t: Type):
+def _render_rss_element(elem, t: Type) -> Element:
     name = XMLSerialization[t].tag_name()
     e = Element(name)
     has_text = False
