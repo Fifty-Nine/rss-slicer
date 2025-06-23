@@ -1,5 +1,5 @@
 """Tests for serialization helpers."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import (Optional)
 from zoneinfo import ZoneInfo
@@ -11,6 +11,7 @@ from rss_slicer.rss._serialize import (_FieldKind,
                                        NestedObject,
                                        TextElement,
                                        XMLSerialization,
+                                       _get_default,
                                        _get_field_kind,
                                        _is_defaulted,
                                        _render_primitive,
@@ -407,3 +408,101 @@ def test_defaulted_attribute_optional():
     )
 
     assert obj.a == 22
+
+
+def test_list_opt_field_no_default():
+    @dataclass
+    class _Uut:
+        a: Optional[list[int]]
+
+    with raises(TypeError):
+        _ = XMLSerialization[_Uut].parse(
+            etree.XML('<_Uut/>')
+        )
+
+
+def test_defaulted_list_non_opt_field():
+    @dataclass
+    class _Uut:
+        a: list[int] = field(default_factory=list)
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == []
+
+
+def test_defaulted_list_optional():
+    @dataclass
+    class _Uut:
+        a: Optional[list[int]] = field(default_factory=lambda: [1])
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == [1]
+
+
+def test_nested_opt_field_no_default():
+    @dataclass
+    class _Child:
+        a: EmbeddedText[int]
+
+    @dataclass
+    class _Uut:
+        a: Optional[_Child]
+
+    with raises(TypeError):
+        _ = XMLSerialization[_Uut].parse(
+            etree.XML('<_Uut/>')
+        )
+
+
+def test_defaulted_nested_non_opt_field():
+    @dataclass
+    class _Child:
+        a: EmbeddedText[int]
+
+    @dataclass
+    class _Uut:
+        a: _Child = field(default_factory=lambda: _Child(22))
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == _Child(22)
+
+
+def test_defaulted_nested_optional():
+    @dataclass
+    class _Child:
+        a: EmbeddedText[int]
+
+    @dataclass
+    class _Uut:
+        a: Optional[_Child] = field(default_factory=lambda: _Child(59))
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == _Child(59)
+
+
+def test_get_default():
+    @dataclass
+    class _Uut:
+        a: int
+        b: int = 99
+        c: int = field(default_factory=int)
+
+    fs = fields(_Uut)
+
+    with raises(TypeError):
+        _get_default(fs[0])
+
+    assert _get_default(fs[1]) == 99
+    assert _get_default(fs[2]) == int()
