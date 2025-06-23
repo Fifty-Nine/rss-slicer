@@ -63,7 +63,7 @@ def _parse_list(e: Element, name: str, parser: Callable[[Element], Any]):
 
 
 class _FieldKind(Enum):
-    RENDERABLE = 0
+    NESTED_OBJECT = 0
     TEXT_ELEMENT = 1
     EMBEDDED_TEXT_ELEMENT = 2
     ATTRIBUTE = 3
@@ -108,9 +108,9 @@ def _get_renderer(t: Type):
     )  # pragma: no cover
 
 
-def _is_renderable(t: Type):
+def _is_nested_object(t: Type):
     return (is_dataclass(t) or
-            _is_optional(t) and any(_is_renderable(nt)
+            _is_optional(t) and any(_is_nested_object(nt)
                                     for nt in typing.get_args(t)))
 
 
@@ -146,8 +146,8 @@ def _get_field_kind(t: Type) -> _FieldKind:
     if annot is not None:
         return annot
 
-    if _is_renderable(t):
-        return _FieldKind.RENDERABLE
+    if _is_nested_object(t):
+        return _FieldKind.NESTED_OBJECT
 
     if _is_list(t):
         return _FieldKind.ELEMENT_LIST
@@ -167,7 +167,7 @@ class _MakeAnnotated:
 Attribute = _MakeAnnotated[_FieldKind.ATTRIBUTE]
 TextElement = _MakeAnnotated[_FieldKind.TEXT_ELEMENT]
 EmbeddedText = _MakeAnnotated[_FieldKind.EMBEDDED_TEXT_ELEMENT]
-Renderable = _MakeAnnotated[_FieldKind.RENDERABLE]
+NestedObject = _MakeAnnotated[_FieldKind.NESTED_OBJECT]
 
 
 @singledispatch
@@ -224,7 +224,7 @@ def _render_element_list(e: Element, field: Field, values: list[Any]):
         raise NotImplementedError('Nested lists are not implemented.')
 
     for value in values:
-        if elem_kind == _FieldKind.RENDERABLE:
+        if elem_kind == _FieldKind.NESTED_OBJECT:
             _render_renderable(e, value)
         else:
             assert elem_kind == _FieldKind.TEXT_ELEMENT
@@ -279,7 +279,7 @@ def _parse_field(field: Field, e: Element):
             return [conv(_get_element_text(c))
                     for c in children]
 
-        case _FieldKind.RENDERABLE:
+        case _FieldKind.NESTED_OBJECT:
             e = e.find(f'./{to_camel(field.name)}')
             if e is None:
                 return None
@@ -383,7 +383,7 @@ def _render_rss_element(elem, t: Type) -> Element:
             case _FieldKind.TEXT_ELEMENT:
                 _render_text_element(e, field, value)
 
-            case _FieldKind.RENDERABLE:
+            case _FieldKind.NESTED_OBJECT:
                 _render_renderable(e, value)
 
             case _FieldKind.ATTRIBUTE:

@@ -8,7 +8,7 @@ from pytest import raises
 from rss_slicer.rss._serialize import (_FieldKind,
                                        Attribute,
                                        EmbeddedText,
-                                       Renderable,
+                                       NestedObject,
                                        TextElement,
                                        XMLSerialization,
                                        _get_field_kind,
@@ -81,17 +81,18 @@ def test_get_field_kind():
             == _FieldKind.TEXT_ELEMENT)
 
     @dataclass
-    class _Renderable:
+    class _NestedObj:
         pass
 
-    assert _get_field_kind(_Renderable) == _FieldKind.RENDERABLE
-    assert _get_field_kind(Optional[_Renderable]) == _FieldKind.RENDERABLE
-    assert _get_field_kind(Renderable[_Renderable]) == _FieldKind.RENDERABLE
-    assert (_get_field_kind(Renderable[Optional[_Renderable]])
-            == _FieldKind.RENDERABLE)
+    assert _get_field_kind(_NestedObj) == _FieldKind.NESTED_OBJECT
+    assert _get_field_kind(Optional[_NestedObj]) == _FieldKind.NESTED_OBJECT
+    assert (_get_field_kind(NestedObject[_NestedObj])
+            == _FieldKind.NESTED_OBJECT)
+    assert (_get_field_kind(NestedObject[Optional[_NestedObj]])
+            == _FieldKind.NESTED_OBJECT)
 
     assert _get_field_kind(list[int]) == _FieldKind.ELEMENT_LIST
-    assert _get_field_kind(list[_Renderable]) == _FieldKind.ELEMENT_LIST
+    assert _get_field_kind(list[_NestedObj]) == _FieldKind.ELEMENT_LIST
     assert _get_field_kind(list[TextElement[str]]) == _FieldKind.ELEMENT_LIST
     assert _get_field_kind(Optional[list[int]]) == _FieldKind.ELEMENT_LIST
     assert _get_field_kind(list[Optional[int]]) == _FieldKind.ELEMENT_LIST
