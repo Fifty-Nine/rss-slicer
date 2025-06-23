@@ -337,3 +337,75 @@ def test_defaulted_optional():
     )
 
     assert obj.a == 22
+
+
+@mark.xfail(raises=ValueError)
+def test_embedded_opt_field_no_default():
+    @dataclass
+    class _Uut:
+        a: EmbeddedText[Optional[int]]
+
+    with raises(TypeError):
+        _ = XMLSerialization[_Uut].parse(
+            etree.XML('<_Uut/>')
+        )
+
+
+@mark.xfail(raises=ValueError)
+def test_defaulted_embedded_non_opt_field():
+    @dataclass
+    class _Uut:
+        a: EmbeddedText[int] = 59
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == 59
+
+
+def test_defaulted_embedded_optional():
+    @dataclass
+    class _Uut:
+        a: Optional[EmbeddedText[int]] = 22
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == 22
+
+
+def test_attribute_opt_field_no_default():
+    @dataclass
+    class _Uut:
+        a: Attribute[Optional[int]]
+
+    with raises(TypeError):
+        _ = XMLSerialization[_Uut].parse(
+            etree.XML('<_Uut/>')
+        )
+
+
+def test_defaulted_attribute_non_opt_field():
+    @dataclass
+    class _Uut:
+        a: Attribute[int] = 59
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == 59
+
+
+def test_defaulted_attribute_optional():
+    @dataclass
+    class _Uut:
+        a: Optional[Attribute[int]] = 22
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut/>')
+    )
+
+    assert obj.a == 22

@@ -27,7 +27,10 @@ def test_category_parse():
             == CategoryXML.parse(
                 ET.XML('<category domain="here it is">text</category>')
             ))
-    assert Category('') == CategoryXML.parse(ET.XML('<category/>'))
+    assert (Category('something')
+            == CategoryXML.parse(
+                ET.XML('<category>   something   \t</category>'))
+            )
 
 
 def test_category_render():
@@ -98,7 +101,7 @@ def test_metadata_roundtrip():
         ttl=10,
         image=Image('http://img/image.jpg', 'image', 'somewhere'),
         rating='bad',
-        text_input=TextInput('eh', 'desc', 'name', ''),
+        text_input=TextInput('eh', 'desc', 'name', 'link'),
         skip_hours=SkipHours(list(range(0, 23))),
         skip_days=SkipDays(['Today', 'Tomorrow'])
     )
