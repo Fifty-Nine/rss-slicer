@@ -339,7 +339,6 @@ def test_defaulted_optional():
     assert obj.a == 22
 
 
-@mark.xfail(raises=ValueError)
 def test_embedded_opt_field_no_default():
     @dataclass
     class _Uut:
@@ -351,7 +350,6 @@ def test_embedded_opt_field_no_default():
         )
 
 
-@mark.xfail(raises=ValueError)
 def test_defaulted_embedded_non_opt_field():
     @dataclass
     class _Uut:

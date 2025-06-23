@@ -90,6 +90,23 @@ def _get_conversion_for_type(t: Type):
     return t
 
 
+def _has_default(field: Field):
+    return field.default != MISSING or field.default_factory != MISSING
+
+
+def _get_default(field: Field):
+    if not _has_default(field):
+        raise TypeError('Field has no default.')
+    return (field.default if field.default != MISSING
+            else field.default_factory())
+
+
+def _is_defaulted(field: Field, value: Any):
+    return ((field.default != MISSING and value == field.default)
+            or (field.default_factory != MISSING
+                and value == field.default_factory()))
+
+
 def _is_optional(t: Type):
     return (typing.get_origin(t) in (typing.Union, types.UnionType)
             and type(None) in typing.get_args(t))
@@ -190,10 +207,6 @@ def _(arg: datetime):
     return format_datetime(arg)
 
 
-def _is_defaulted(field: Field, value: Any):
-    return field.default != MISSING and value == field.default
-
-
 def _render_renderable(e: Element, value: Any):
     e.append(XMLSerialization[type(value)].render(value))
 
@@ -237,52 +250,60 @@ def _get_element_text(e: Element):
     return text if text is not None and len(text) > 0 else None
 
 
+class _MissingFieldException(Exception):
+    def __init__(self, field: Field):
+        self.field_name = field.name
+
+
+def _check_default(field: Field,
+                   text: Optional[str],
+                   conv: Callable[[str], Any]):
+    if text is None and not _has_default(field):
+        raise _MissingFieldException(field)
+
+    if text is None:
+        return _get_default(field)
+
+    return conv(text)
+
+
 def _parse_field(field: Field, e: Element):
     # pylint: disable=too-many-return-statements
     conv = _get_conversion_for_type(field.type)
     match _get_field_kind(field.type):
         case _FieldKind.EMBEDDED_TEXT_ELEMENT:
-            text = _get_element_text(e)
-
-            if text is None and _is_optional(field.type):
-                return None
-
-            if text is None:
-                text = ''
-
-            return conv(text)
+            return _check_default(field, _get_element_text(e), conv)
 
         case _FieldKind.ATTRIBUTE:
-            text = e.attrib.get(to_camel(field.name))
-            return conv(text) if text is not None else None
+            return _check_default(field,
+                                  e.attrib.get(to_camel(field.name)),
+                                  conv)
 
         case _FieldKind.TEXT_ELEMENT:
             child = e.find(f'./{to_camel(field.name)}')
-            if child is None:
-                return None
 
-            text = _get_element_text(child)
-            if text is None and _is_optional(field.type):
-                return None
+            text = _get_element_text(child) if child is not None else None
 
-            if text is None:
-                text = ''
-
-            return conv(text) if text is not None else None
+            return _check_default(field, text, conv)
 
         case _FieldKind.ELEMENT_LIST:
             children = e.findall(f'./{_singularize(to_camel(field.name))}')
+            if len(children) == 0 and not _has_default(field):
+                raise _MissingFieldException(field)
 
             if len(children) == 0:
-                return None
+                return _get_default(field)
 
             return [conv(_get_element_text(c))
                     for c in children]
 
         case _FieldKind.NESTED_OBJECT:
             e = e.find(f'./{to_camel(field.name)}')
+            if e is None and not _has_default(field):
+                raise _MissingFieldException(field)
+
             if e is None:
-                return None
+                return _get_default(field)
 
             return _get_renderer(field.type).parse(e)
 
@@ -294,9 +315,10 @@ def _parse_rss_element(rss_type, e: Element):
     init_dict = {}
 
     for field in fields(rss_type):
-        v = _parse_field(field, e)
-        if v is not None:
-            init_dict[field.name] = v
+        try:
+            init_dict[field.name] = _parse_field(field, e)
+        except _MissingFieldException:
+            continue
 
     return rss_type(**init_dict)
 
