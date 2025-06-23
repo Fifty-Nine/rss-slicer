@@ -302,3 +302,38 @@ def test_nested_non_dataclass_obj():
     _ = XMLSerialization[TestNested].parse(
         etree.XML('<testNested><a/></testNested>')
     )
+
+
+def test_opt_field_no_default():
+    @dataclass
+    class TestOptFieldNoDefault:
+        a: Optional[int]
+
+    with raises(TypeError):
+        _ = XMLSerialization[TestOptFieldNoDefault].parse(
+            etree.XML('<testOptFieldNoDefault/>')
+        )
+
+
+def test_defaulted_non_opt_field():
+    @dataclass
+    class TestDefaultedNonOptField:
+        a: int = 59
+
+    obj = XMLSerialization[TestDefaultedNonOptField].parse(
+        etree.XML('<testDefaultedNonOptField/>')
+    )
+
+    assert obj.a == 59
+
+
+def test_defaulted_optional():
+    @dataclass
+    class TestDefaultedOptional:
+        a: Optional[int] = 22
+
+    obj = XMLSerialization[TestDefaultedOptional].parse(
+        etree.XML('<testDefaultedOptional/>')
+    )
+
+    assert obj.a == 22
