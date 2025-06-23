@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import (Optional)
 from zoneinfo import ZoneInfo
 from lxml import etree
-from pytest import raises
+from pytest import raises, mark
 from rss_slicer.rss._serialize import (_FieldKind,
                                        Attribute,
                                        EmbeddedText,
@@ -267,3 +267,38 @@ def test_parse_opt_dataclass():
     )
 
     assert obj.m.a == 33
+
+
+class _TestNotADataclass:  # pylint: disable=missing-function-docstring
+    def __init__(self, a: int):
+        self.a = a
+
+    @staticmethod
+    def parse(_: etree.Element) -> '_TestNotADataclass':
+        return _TestNotADataclass(1234)
+
+    def render(self) -> etree.Element:
+        return etree.XML('<someCustomXML/>')
+
+
+def test_non_dataclass_obj():
+    obj = XMLSerialization[_TestNotADataclass].parse(
+        etree.XML('<arbitrary/>')
+    )
+
+    assert obj.a == 1234
+
+    rendered = XMLSerialization[_TestNotADataclass].render(obj)
+
+    assert etree.tostring(rendered) == b'<someCustomXML/>'
+
+
+@mark.xfail(reason="not implemented")
+def test_nested_non_dataclass_obj():
+    @dataclass
+    class TestNested:
+        a: NestedObject[_TestNotADataclass]
+
+    _ = XMLSerialization[TestNested].parse(
+        etree.XML('<testNested><a/></testNested>')
+    )
