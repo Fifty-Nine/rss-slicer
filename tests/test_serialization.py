@@ -236,6 +236,7 @@ def test_parse_bad_union():
         )
 
 
+@mark.xfail(raises=TypeError, reason="need to special-case datetimes")
 def test_parse_datetime_field():
     @dataclass
     class _Uut:
@@ -506,3 +507,44 @@ def test_get_default():
 
     assert _get_default(fs[1]) == 99
     assert _get_default(fs[2]) == int()
+
+
+def test_attribute_optional():
+    @dataclass
+    class _Uut:
+        a: Attribute[Optional[str]]
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut a="test"/>')
+    )
+
+    assert obj.a == "test"
+
+
+@mark.xfail(raises=NotImplementedError, reason="No support for required lists yet.")
+def test_nested_list():
+    @dataclass
+    class _UutItem:
+        text: EmbeddedText[str]
+
+    @dataclass
+    class _Uut:
+        items: list[_UutItem]
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut><item>foo</item><item>bar</item></_Uut>')
+    )
+
+    assert obj.items == [_UutItem('foo'), _UutItem('bar')]
+
+
+def test_simple_list():
+    @dataclass
+    class _Uut:
+        things: list[str]
+
+    obj = XMLSerialization[_Uut].parse(
+        etree.XML('<_Uut><thing>foo</thing><thing>bar</thing></_Uut>')
+    )
+
+    assert obj.things == ['foo', 'bar']

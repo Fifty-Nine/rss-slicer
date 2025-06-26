@@ -147,7 +147,7 @@ def _get_renderer(t: Type):
                                   if nt is not type(None)))
 
     raise NotImplementedError(
-        "No available renderer for type {t}"
+        f"No available renderer for type {t}"
     )  # pragma: no cover
 
 
@@ -284,35 +284,134 @@ def _check_default(field: Field,
     return conv(text)
 
 
+def _parse_embedded_text(elem: Element,
+                         field: Field,
+                         name: str,
+                         conv: Callable):
+    _ = name
+    return _check_default(field, _get_element_text(elem), conv)
+
+
+def _parse_attribute(elem: Element,
+                     field: Field,
+                     name: str,
+                     conv: Callable):
+    return _check_default(field,
+                          elem.attrib.get(to_camel(name)),
+                          conv)
+
+
+def _parse_text_element(elem: Element,
+                        field: Field,
+                        name: str,
+                        conv: Callable):
+    child = elem.find(f'./{to_camel(name)}')
+    text = _get_element_text(child) if child is not None else None
+    return _check_default(field, text, conv)
+
+
+def _parse_list_element(elem: Element,
+                        field: Field,
+                        name: str,
+                        conv: Callable):
+    children = elem.findall(f'./{_singularize(to_camel(name))}')
+    if len(children) == 0 and not _has_default(field):
+        raise _MissingFieldException(field)
+
+    if len(children) == 0:
+        return _get_default(field)
+
+    return [conv(c) for c in children]
+
+
+def _parse_nested_object_element(elem: Element,
+                                 field: Field,
+                                 name: str,
+                                 _: Callable):
+    obj = elem.find(f'./{to_camel(name)}')
+    if obj is None and not _has_default(field):
+        raise _MissingFieldException(field)
+
+    if obj is None:
+        return _get_default(field)
+
+    return _get_renderer(field.type).parse(obj)
+
+
+_parse_fns = {
+    Attribute: (_parse_attribute, lambda n: n, True),
+    EmbeddedText: (_parse_embedded_text, lambda n: n, True),
+    TextElement: (_parse_text_element, lambda n: n, True),
+    #list: (_parse_list_element, _singularize, False),
+    NestedObject: (_parse_nested_object_element, lambda n: n, False)
+}
+
+
+def _make_parser(field: Field,
+                 t: Optional[Type] = None,
+                 name: Optional[str] = None,
+                 known_text_field: bool = False):
+    t = t or field.type
+    name = name or field.name
+    origin = typing.get_origin(t)
+    wrapper = _parse_fns.get(origin)
+    if wrapper is not None:
+        nested_type = typing.get_args(t)[0]
+        name = wrapper[1](name)
+        known_text_field = wrapper[2] or known_text_field
+        inner = _make_parser(field, nested_type, name, known_text_field)
+        return lambda e: wrapper[0](e, field, name, inner)
+
+    if origin is list:
+        nested_type = typing.get_args(t)[0]
+        name = _singularize(name)
+        known_text_field = False
+        origin = typing.get_origin(nested_type)
+
+        if origin in (EmbeddedText, typing.Union, types.UnionType):
+            raise NotImplementedError(f'Unsupported origin for list type: {origin}')
+
+        if is_dataclass(nested_type):
+            return lambda e: _parse_list_element(e,
+                                                 field,
+                                                 name,
+                                                 _make_parser(field,
+                                                              nested_type,
+                                                              name,
+                                                              False))
+
+        return lambda e: _parse_embedded_text(e, field, name, nested_type)
+
+    if origin in (typing.Union, types.UnionType):
+        nested_types = [nt for nt in typing.get_args(t)
+                        if nt is not type(None)]
+        if len(nested_types) != 1:
+            raise NotImplementedError("union types are not supported")
+
+        return _make_parser(field, nested_types[0], name, known_text_field)
+
+    if is_dataclass(t):
+        return lambda e: _parse_nested_object_element(e, field, name, None)
+
+    return t if known_text_field else lambda e: _parse_text_element(e, field, name, t)
+
+
 def _parse_field(field: Field, e: Element):
     # pylint: disable=too-many-return-statements
     conv = _get_conversion_for_type(field.type)
+    p = _make_parser(field)
     match _get_field_kind(field.type):
         case _FieldKind.EMBEDDED_TEXT_ELEMENT:
-            return _check_default(field, _get_element_text(e), conv)
+            return p(e)
 
         case _FieldKind.ATTRIBUTE:
-            return _check_default(field,
-                                  e.attrib.get(to_camel(field.name)),
-                                  conv)
+            return p(e)
 
         case _FieldKind.TEXT_ELEMENT:
-            child = e.find(f'./{to_camel(field.name)}')
-
-            text = _get_element_text(child) if child is not None else None
-
-            return _check_default(field, text, conv)
+            return p(e)
 
         case _FieldKind.ELEMENT_LIST:
-            children = e.findall(f'./{_singularize(to_camel(field.name))}')
-            if len(children) == 0 and not _has_default(field):
-                raise _MissingFieldException(field)
-
-            if len(children) == 0:
-                return _get_default(field)
-
-            return [conv(_get_element_text(c))
-                    for c in children]
+            return p(e)
 
         case _FieldKind.NESTED_OBJECT:
             e = e.find(f'./{to_camel(field.name)}')
