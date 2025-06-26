@@ -202,3 +202,6 @@ __marimo__/
 
 # Visual Studio configuration
 .vscode/
+
+# Sample XML files used for manual testing, not included in source control.
+samples/
