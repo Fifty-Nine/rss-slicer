@@ -40,8 +40,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pylint.main]
 suggestion-mode = true
-extension-pkg-allow-list = "lxml"
 no-docstring-rgx = "^(_|test_)"
+ignore = ['.venv']
 
 [tool.pylint.basic]
 docstring-min-length = -1
