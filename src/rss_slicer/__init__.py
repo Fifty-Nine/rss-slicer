@@ -11,7 +11,7 @@ streams.
 """
 from dataclasses import dataclass
 from typing import Annotated, Callable
-from lxml.etree import Element
+from xml.etree.ElementTree import Element
 from rss_slicer import rss
 
 Callback = Annotated[
@@ -45,7 +45,7 @@ def apply_one_mutation(tree: Element, query: str, mutator: Callback):
             to_remove.append(node)
 
     for node in to_remove:
-        node.find('..').remove(node)
+        tree.find(f'{query}/..').remove(node)
 
 
 def apply_mutations(tree: Element, mutations: list[tuple[str, Callback]]):
@@ -71,6 +71,6 @@ class SlicedFeed:
 
 def slice_feeds(
         input_feeds: list[Element],
-        output_feed: SlicedFeed) -> list[Element]:
+        output_feed: SlicedFeed) -> list[Element]:  # pragma: no cover
     """Slice a set of RSS feeds according to the specified output feeds."""
     _ = input_feeds, output_feed

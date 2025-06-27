@@ -1,6 +1,6 @@
 """Tests for rss slicer metadata types."""
 from datetime import datetime
-import lxml.etree as ET
+import xml.etree.ElementTree as ET
 from rss_slicer.rss import (Category,
                             Image,
                             Cloud,
@@ -18,9 +18,9 @@ def test_category_roundtrip():
 def test_category_parse():
     assert (Category('text', domain='here it is')
             == Category.parse(
-                ET.XML('<category domain="here it is">text</category>')
+                ET.fromstring('<category domain="here it is">text</category>')
             ))
-    assert Category('') == Category.parse(ET.XML('<category/>'))
+    assert Category('') == Category.parse(ET.fromstring('<category/>'))
 
 
 def test_category_render():

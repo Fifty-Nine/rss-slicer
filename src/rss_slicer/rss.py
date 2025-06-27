@@ -5,7 +5,7 @@ from email.utils import parsedate_to_datetime, format_datetime
 from typing import (Any,
                     Callable,
                     Optional)
-from lxml.etree import Element, SubElement
+from xml.etree.ElementTree import Element, SubElement
 
 
 def _get(e: Element, name: str, ctor: Callable[[str], Any] = str):

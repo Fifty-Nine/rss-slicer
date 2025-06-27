@@ -1,6 +1,6 @@
 """Tests for RSS slicing functionality."""
-from lxml import etree
-from lxml.etree import Element
+import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import Element
 from rss_slicer import apply_one_mutation, apply_mutations, Callback
 
 
@@ -50,13 +50,13 @@ class TestMutators:
 
 def test_trivial():
     """Trivial smoke test for basic rss_slicer functionality."""
-    root = etree.fromstring(b'<data><a/><b/><c/></data>')
+    root = ET.fromstring(b'<data><a/><b/><c/></data>')
 
     apply_one_mutation(
         root, './',
         TestMutators.oneshot(TestMutators.retag('d'))
     )
-    assert b'<data><d/><b/><c/></data>' == etree.tostring(root)
+    assert b'<data><d /><b /><c /></data>' == ET.tostring(root)
 
     apply_mutations(
         root,
@@ -66,4 +66,4 @@ def test_trivial():
             ('./d', TestMutators.delete())
         ]
     )
-    assert b'<data><e/><c/></data>' == etree.tostring(root)
+    assert b'<data><e /><c /></data>' == ET.tostring(root)
