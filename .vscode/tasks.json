@@ -69,7 +69,7 @@
 		},
 		{
 			"label": "Run tests",
-			"command": "poetry run pytest",
+			"command": "poetry run pytest --cov --cov-branch --cov-fail-under=100",
 			"type": "shell",
 			"args": [],
 			"group": "test"
