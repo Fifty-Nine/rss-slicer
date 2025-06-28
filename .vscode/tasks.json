@@ -1,0 +1,87 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run pylint",
+			"command": "poetry run pylint .",
+			"type": "shell",
+			"args": [],
+			"problemMatcher": {
+				"owner": "python",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}"
+				],
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+):\\s+(W|E)[0-9]+\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"severity": 4,
+					"message": 5
+				}
+			},
+			"presentation": {
+				"reveal": "always"
+			},
+			"group": "test"
+		},
+		{
+			"label": "Run flake8",
+			"command": "poetry run flake8",
+			"type": "shell",
+			"args": [],
+			"problemMatcher": {
+				"owner": "python",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}"
+				],
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+):\\s+([A-Z])[0-9]+\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"message": 5
+				}
+			},
+			"presentation": {
+				"reveal": "always"
+			},
+			"group": "test"
+		},
+		{
+			"label": "Run pyright",
+			"command": "poetry run pyright",
+			"type": "shell",
+			"args": [],
+			"problemMatcher": {
+				"owner": "python",
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+)\\s+-\\s+(error|warning):\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"severity": 4,
+					"message": 5
+				}
+			},
+		},
+		{
+			"label": "Run tests",
+			"command": "poetry run pytest",
+			"type": "shell",
+			"args": [],
+			"group": "test"
+		},
+		{
+			"label": "Run all checks",
+			"dependsOn":["Run pylint", "Run flake8", "Run pyright", "Run tests"]
+		}
+	],
+	"typescript.tsc.autoDetect": "off",
+	"grunt.autoDetect": "off",
+	"jake.autoDetect": "off",
+	"gulp.autoDetect": "off",
+	"npm.autoDetect": "off"
+}

@@ -50,3 +50,11 @@ docstring-min-length = -1
 [tool.pylint."messages control"]
 disable = ["too-many-instance-attributes",
            "too-many-branches"]
+
+[tool.pytest.ini_options]
+testpaths = ['./tests']
+addopts = '--cov=. --cov-branch --cov-fail-under=100'
+
+[tool.pyright]
+exclude = ['./.venv']
+typeCheckingMode = "standard"
