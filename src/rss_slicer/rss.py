@@ -8,18 +8,22 @@ from typing import (Any,
 from xml.etree.ElementTree import Element, SubElement
 
 
+def _get_text_or_none(e: Element | None) -> str | None:
+    return e.text if e is not None else None
+
+
+def _get_text_or_empty(e: Element | None) -> str:
+    text = _get_text_or_none(e)
+    return text or ''
+
+
 def _get(e: Element, name: str, ctor: Callable[[str], Any] = str):
-    text = e.find(f'./{name}').text
-    return ctor(text if text is not None else '')
+    return ctor(_get_text_or_empty(e.find(f'./{name}')))
 
 
 def _get_opt(e: Element, name: str, ctor: Callable[[str], Any] = str):
-    result = e.find(f'./{name}')
-
-    if result is not None:
-        return ctor(result.text)
-
-    return None
+    text = _get_text_or_none(e.find(f'./{name}'))
+    return ctor(text) if text is not None else None
 
 
 def _parse_opt(e: Element, name: str, parser: Callable[[Element], Any]):
@@ -31,13 +35,26 @@ def _parse_opt(e: Element, name: str, parser: Callable[[Element], Any]):
     return None
 
 
-def _parse_list(e: Element, name: str, parser: Callable[[Element], Any]):
+def _parse_list_opt(e: Element,
+                    name: str,
+                    parser: Callable[[Element], Any]) -> list[Any] | None:
     result = e.findall(f'./{name}')
 
     if len(result) == 0:
         return None
 
     return [parser(r) for r in result]
+
+
+def _parse_list(e: Element, name: str,
+                parser: Callable[[Element], Any]) -> list[Any]:
+    return _parse_list_opt(e, name, parser) or []
+
+
+def _read_int(e: Element) -> int:
+    if e.text is None:
+        raise ValueError('No text for numeric element.')
+    return int(e.text)
 
 
 @dataclass
@@ -208,7 +225,7 @@ class SkipHours:
     def parse(e: Element) -> 'SkipHours':
         """Parse the given 'skipHours' element from an RSS document."""
         return SkipHours(
-            _parse_list(e, 'hour', lambda h: int(h.text))
+            _parse_list(e, 'hour', _read_int)
         )
 
 
@@ -353,7 +370,7 @@ class Channel:
             _get_opt(e, 'webMaster'),
             _get_opt(e, 'pubDate', parsedate_to_datetime),
             _get_opt(e, 'lastBuildDate', parsedate_to_datetime),
-            _parse_list(e, 'category', Category.parse),
+            _parse_list_opt(e, 'category', Category.parse),
             _get_opt(e, 'generator'),
             _get_opt(e, 'docs'),
             _parse_opt(e, 'cloud', Cloud.parse),

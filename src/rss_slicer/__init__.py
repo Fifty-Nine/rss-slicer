@@ -45,7 +45,9 @@ def apply_one_mutation(tree: Element, query: str, mutator: Callback):
             to_remove.append(node)
 
     for node in to_remove:
-        tree.find(f'{query}/..').remove(node)
+        parent = tree.find(f'{query}/..')
+        assert parent is not None
+        parent.remove(node)
 
 
 def apply_mutations(tree: Element, mutations: list[tuple[str, Callback]]):
@@ -74,3 +76,4 @@ def slice_feeds(
         output_feed: SlicedFeed) -> list[Element]:  # pragma: no cover
     """Slice a set of RSS feeds according to the specified output feeds."""
     _ = input_feeds, output_feed
+    return []

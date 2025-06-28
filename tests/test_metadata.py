@@ -1,13 +1,15 @@
 """Tests for rss slicer metadata types."""
 from datetime import datetime
 import xml.etree.ElementTree as ET
+from pytest import raises
 from rss_slicer.rss import (Category,
                             Image,
                             Cloud,
                             TextInput,
                             SkipHours,
                             SkipDays,
-                            Channel)
+                            Channel,
+                            _read_int)
 
 
 def test_category_roundtrip():
@@ -87,3 +89,8 @@ def test_metadata_roundtrip():
         skip_days=SkipDays(['Today', 'Tomorrow'])
     )
     assert meta_opt == Channel.parse(meta_opt.render())
+
+
+def test_parse_int():
+    with raises(ValueError):
+        _read_int(ET.fromstring('<a/>'))

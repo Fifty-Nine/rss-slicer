@@ -65,7 +65,7 @@
 					"severity": 4,
 					"message": 5
 				}
-			},
+			}
 		},
 		{
 			"label": "Run tests",
@@ -76,7 +76,13 @@
 		},
 		{
 			"label": "Run all checks",
-			"dependsOn":["Run pylint", "Run flake8", "Run pyright", "Run tests"]
+			"dependsOn": [
+				"Run pylint",
+				"Run flake8",
+				"Run pyright",
+				"Run tests"
+			],
+			"problemMatcher": []
 		}
 	],
 	"typescript.tsc.autoDetect": "off",
